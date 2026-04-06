@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 
-const API = "https://certifyhub-f4xu.onrender.com/api";
+const API = "https://eventx-qu93.onrender.com/api";
 
 export default function EventTimeline() {
   const { id } = useParams();
