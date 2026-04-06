@@ -6,21 +6,38 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const userRoutes = require("./routes/userRoutes");
-const eventRoutes = require("./routes/eventRoutes");
+const userRoutes         = require("./routes/userRoutes");
+const eventRoutes        = require("./routes/eventRoutes");
 const registrationRoutes = require("./routes/registrationRoutes");
-const certificateRoutes = require("./routes/certificateRoutes");
-const emailRoutes = require("./routes/emailRoutes");
-const authMiddleware = require("./middleware/authMiddleware");
+const certificateRoutes  = require("./routes/certificateRoutes");
+const emailRoutes        = require("./routes/emailRoutes");
+const paymentRoutes      = require("./routes/paymentRoutes");
+const authMiddleware     = require("./middleware/authMiddleware");
+const setupCronJobs      = require("./cronJob");
 
 // 🚀 App init
 const app = express();
 
 // 🛠 Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g. curl, Postman)
+    if (!origin) return callback(null, true);
+    // Allow any localhost port (dev) or the env-configured client URL
+    const allowed = process.env.CLIENT_URL || "";
+    if (
+      /^http:\/\/localhost:\d+$/.test(origin) ||
+      /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) ||
+      origin === allowed
+    ) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS: " + origin));
+  },
+  credentials: true,
 }));
+
+
 app.use(express.json());
 
 // 🌐 Health check route
@@ -29,11 +46,13 @@ app.get("/", (req, res) => {
 });
 
 // 🔗 Routes
-app.use("/api/users", userRoutes);
-app.use("/api/events", eventRoutes);
+app.use("/api/users",         userRoutes);
+app.use("/api/events",        eventRoutes);
 app.use("/api/registrations", registrationRoutes);
-app.use("/api/certificate", certificateRoutes);
-app.use("/api/email", emailRoutes);
+app.use("/api/certificate",   certificateRoutes);
+app.use("/api/email",         emailRoutes);
+app.use("/api/payments",      paymentRoutes);
+
 
 // 🔐 Protected test route
 app.get("/api/protected", authMiddleware, (req, res) => {
@@ -52,6 +71,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB Connected ✅");
+    setupCronJobs();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT} 🚀`);
     });

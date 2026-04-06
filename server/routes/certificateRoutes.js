@@ -49,6 +49,14 @@ router.get("/generate/:eventId", authMiddleware, async (req, res) => {
     const eventName = registration.event.title;
     const eventDate = new Date(registration.event.date).toDateString();
 
+    // ─── Generate ID if not exists ─────────────────────────────────────────────
+    if (!registration.certificateId) {
+      const crypto = require("crypto");
+      registration.certificateId = "EVX-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+      registration.certificateGenerated = true;
+      await registration.save();
+    }
+
     // ─── Build PDF ─────────────────────────────────────────────────────────────
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([700, 480]);
@@ -136,6 +144,20 @@ router.get("/generate/:eventId", authMiddleware, async (req, res) => {
       color: gray,
     });
 
+    // Print Certificate ID
+    page.drawText(`Certificate ID: ${registration.certificateId}`, {
+      x: 480, y: 165,
+      size: 10,
+      font: boldFont,
+      color: dark,
+    });
+    page.drawText(`Verify at: eventx.com/verify/${registration.certificateId}`, {
+      x: 480, y: 150,
+      size: 9,
+      font: regularFont,
+      color: gray,
+    });
+
     // Signature line
     page.drawLine({
       start: { x: 60, y: 90 },
@@ -162,6 +184,24 @@ router.get("/generate/:eventId", authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error("Certificate generation error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ GET VERIFY CERTIFICATE (Public)
+router.get("/verify/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const registration = await Registration.findOne({ certificateId: id })
+      .populate("user", "name email")
+      .populate("event", "title date category createdBy");
+
+    if (!registration) {
+      return res.status(404).json({ message: "Certificate not found or invalid" });
+    }
+
+    res.json(registration);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });

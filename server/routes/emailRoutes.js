@@ -1,9 +1,3 @@
-// 📍 File: event-system/server/routes/emailRoutes.js
-//
-// 📦 Requires: nodemailer (already in package.json)
-//    Also set in .env:  EMAIL_USER and EMAIL_PASS
-//    Gmail: use an App Password (not your real password)
-//    Guide: https://support.google.com/accounts/answer/185833
 
 const express = require("express");
 const router = express.Router();

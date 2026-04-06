@@ -38,6 +38,26 @@ const eventSchema = new mongoose.Schema({
     type: String
   },
 
+  // 🔥 NEW FIELDS for Speakers, Sponsors, Gallery
+  speakers: [{
+    name: String,
+    bio: String,
+    company: String,
+    image: String
+  }],
+  sponsors: [{
+    name: String,
+    logo: String,
+    url: String
+  }],
+  galleryImages: [{
+    type: String
+  }],
+  recapVideoUrl: {
+    type: String,
+    default: ""
+  },
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"

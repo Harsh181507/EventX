@@ -127,11 +127,16 @@ export default function Auth() {
         setError("✓ Account created! Please log in.");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.errors?.[0]?.msg ||
-        "Something went wrong"
-      );
+      if (!err.response) {
+        // Network error — backend is down or unreachable
+        setError("Cannot connect to server. Make sure the backend is running on port 5000.");
+      } else {
+        setError(
+          err.response?.data?.message ||
+          err.response?.data?.errors?.[0]?.msg ||
+          "Something went wrong. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }

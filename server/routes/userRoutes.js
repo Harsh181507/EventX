@@ -9,6 +9,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
+const authMiddleware = require("../middleware/authMiddleware");
 
 // ─── Helper: send validation errors ───────────────────────────────────────────
 const validate = (req, res) => {
@@ -95,5 +96,59 @@ router.post(
     }
   }
 );
+
+// ✅ GET PROFILE
+router.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ UPDATE PROFILE
+router.patch("/profile", authMiddleware, async (req, res) => {
+  try {
+    const { name, phone, organization, avatar, bio, socialLinks, subscriptionPlan } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (organization !== undefined) user.organization = organization;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (bio !== undefined) user.bio = bio;
+    if (socialLinks !== undefined) user.socialLinks = { ...user.socialLinks, ...socialLinks };
+    if (subscriptionPlan !== undefined) user.subscriptionPlan = subscriptionPlan;
+
+    await user.save();
+    
+    // Don't send back password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    res.json({ message: "Profile updated successfully", user: userObj });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ GET ORGANIZER PUBLIC PROFILE
+router.get("/organizer/:id", async (req, res) => {
+  try {
+    const organizer = await User.findById(req.params.id).select("name email organization avatar bio socialLinks");
+    if (!organizer) return res.status(404).json({ message: "Organizer not found" });
+
+    const Event = require("../models/Event");
+    const events = await Event.find({ createdBy: req.params.id }).sort({ date: 1 });
+
+    res.json({ organizer, events });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;
