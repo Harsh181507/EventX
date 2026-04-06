@@ -58,7 +58,7 @@ export default function PaymentSuccess() {
           
           {/* Main Action Group */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <a href={`http://localhost:5000/api/registrations/invoice/${registrationId}?token=${localStorage.getItem("token")}`}
+            <a href={`https://certifyhub-f4xu.onrender.com/api/registrations/invoice/${registrationId}?token=${localStorage.getItem("token")}`}
                target="_blank" rel="noopener noreferrer"
                style={{
                  textDecoration: "none", padding: "14px", borderRadius: "12px",

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://certifyhub-f4xu.onrender.com/api";
 
 // ─── Field component ───────────────────────────────────────────────────────────
 function Field({ label, required, children }) {

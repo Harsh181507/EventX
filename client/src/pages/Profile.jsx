@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://certifyhub-f4xu.onrender.com/api";
 
 // ─── Achievement Badge Component ──────────────────────────────────────────────
 function Achievement({ icon, title, description, unlocked, delay }) {

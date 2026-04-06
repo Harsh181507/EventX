@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = "http://localhost:5000/api";
+const API = "https://certifyhub-f4xu.onrender.com/api";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const inputStyle = {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://certifyhub-f4xu.onrender.com/api";
 
 export default function EventGallery() {
   const { id } = useParams();
