@@ -1,5 +1,9 @@
 // 📍 File: event-system/server/index.js
 
+// 🌐 Force IPv4 DNS resolution (Render free tier blocks IPv6 outbound)
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+
 // 📦 Imports
 const express = require("express");
 const cors = require("cors");
