@@ -146,45 +146,42 @@ router.post("/register/:eventId", authMiddleware, async (req, res) => {
 
     await registration.save();
 
-    // Generate Invoice PDF
-    let invoiceBuffer = null;
-    try {
-      invoiceBuffer = await generateInvoice(registration, event, { name: req.user.name || "Participant", email: req.user.email });
-    } catch (pdfErr) {
-      console.error("PDF generation error:", pdfErr);
-    }
-
-    // Send Confirmation Email with Invoice attached
-    try {
-      const transporter = createTransporter();
-      await transporter.sendMail({
-        from: `"EventX" <${process.env.EMAIL_USER}>`,
-        to: req.user.email,
-        subject: `Registration Confirmed – ${event.title}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px;">
-            <h2 style="color: #6d28d9;">You're in! 🎉</h2>
-            <p>Hi,</p>
-            <p>Your registration for <strong>${event.title}</strong> is fully confirmed.</p>
-            <p>You will find your invoice attached to this email.</p>
-            <p style="margin-top: 24px; color: #888; font-size: 13px;">
-              You can also view this securely from your EventX Dashboard.
-            </p>
-          </div>
-        `,
-        attachments: invoiceBuffer ? [
-          {
-            filename: `Invoice_${event.title.replace(/\s+/g,"_")}.pdf`,
-            content: Buffer.from(invoiceBuffer),
-            contentType: "application/pdf"
-          }
-        ] : []
-      });
-    } catch (emailErr) {
-      console.error("Email sending error:", emailErr);
-    }
-
+    // Send response immediately so the UI doesn't hang
     res.status(201).json({ message: "Registered successfully", registration });
+
+    // Fire email in the background (non-blocking)
+    (async () => {
+      try {
+        const invoiceBuffer = await generateInvoice(registration, event, { name: req.user.name || "Participant", email: req.user.email });
+        const transporter = createTransporter();
+        await transporter.sendMail({
+          from: `"EventX" <${process.env.EMAIL_USER}>`,
+          to: req.user.email,
+          subject: `Registration Confirmed – ${event.title}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px;">
+              <h2 style="color: #6d28d9;">You're in! 🎉</h2>
+              <p>Hi,</p>
+              <p>Your registration for <strong>${event.title}</strong> is fully confirmed.</p>
+              <p>You will find your invoice attached to this email.</p>
+              <p style="margin-top: 24px; color: #888; font-size: 13px;">
+                You can also view this securely from your EventX Dashboard.
+              </p>
+            </div>
+          `,
+          attachments: invoiceBuffer ? [
+            {
+              filename: `Invoice_${event.title.replace(/\s+/g,"_")}.pdf`,
+              content: Buffer.from(invoiceBuffer),
+              contentType: "application/pdf"
+            }
+          ] : []
+        });
+        console.log("Confirmation email sent for:", event.title);
+      } catch (bgErr) {
+        console.error("Background email error:", bgErr.message);
+      }
+    })();
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -273,50 +270,47 @@ router.patch("/:registrationId/attendance", authMiddleware, async (req, res) => 
     registration.attendance = true;
     await registration.save();
 
-    // Generate Certificate
+    // Respond immediately
+    res.json({ message: "Attendance marked and certificate emailed successfully", registration });
+
+    // Fire certificate email in the background (non-blocking)
     const userName = registration.user.name || "Participant";
     const eventName = registration.event.title;
     const eventDate = new Date(registration.event.date).toDateString();
-    
-    let certBuffer = null;
-    try {
-      certBuffer = await generateCertificatePDF(userName, eventName, eventDate);
-    } catch (pdfErr) {
-      console.error("Certificate PDF generation error:", pdfErr);
-    }
 
-    // Send the email with the certificate
-    if (certBuffer) {
+    (async () => {
       try {
-        const transporter = createTransporter();
-        await transporter.sendMail({
-          from: `"EventX" <${process.env.EMAIL_USER}>`,
-          to: registration.user.email,
-          subject: `Your Certificate – ${eventName}`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px;">
-              <h2 style="color: #6d28d9;">Congratulations, ${userName}! 🎓</h2>
-              <p>Your attendance for <strong>${eventName}</strong> has been successfully verified.</p>
-              <p>Please find your official Certificate of Participation attached to this email.</p>
-              <p style="margin-top: 24px; color: #888; font-size: 13px;">
-                You can also view and download this securely from your EventX Dashboard.
-              </p>
-            </div>
-          `,
-          attachments: [
-            {
-              filename: `Certificate_${eventName.replace(/\s+/g,"_")}.pdf`,
-              content: Buffer.from(certBuffer),
-              contentType: "application/pdf"
-            }
-          ]
-        });
-      } catch (emailErr) {
-        console.error("Email sending error:", emailErr);
+        const certBuffer = await generateCertificatePDF(userName, eventName, eventDate);
+        if (certBuffer) {
+          const transporter = createTransporter();
+          await transporter.sendMail({
+            from: `"EventX" <${process.env.EMAIL_USER}>`,
+            to: registration.user.email,
+            subject: `Your Certificate – ${eventName}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 12px;">
+                <h2 style="color: #6d28d9;">Congratulations, ${userName}! 🎓</h2>
+                <p>Your attendance for <strong>${eventName}</strong> has been successfully verified.</p>
+                <p>Please find your official Certificate of Participation attached to this email.</p>
+                <p style="margin-top: 24px; color: #888; font-size: 13px;">
+                  You can also view and download this securely from your EventX Dashboard.
+                </p>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: `Certificate_${eventName.replace(/\s+/g,"_")}.pdf`,
+                content: Buffer.from(certBuffer),
+                contentType: "application/pdf"
+              }
+            ]
+          });
+          console.log("Certificate email sent for:", eventName);
+        }
+      } catch (bgErr) {
+        console.error("Background certificate email error:", bgErr.message);
       }
-    }
-
-    res.json({ message: "Attendance marked and certificate emailed successfully", registration });
+    })();
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
